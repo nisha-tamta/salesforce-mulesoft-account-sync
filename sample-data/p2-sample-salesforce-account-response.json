@@ -1,0 +1,169 @@
+{
+    "success": true,
+    "message": "Salesforce accounts synced to ERP",
+    "correlationId": "ed472830-2f87-11f1-b36e-6adcb577e0f6",
+    "erpResponse": [
+        {
+            "externalId": "001ak00001hb2SzAAI",
+            "customerName": "Edge Communications",
+            "billingCity": "Austin",
+            "billingCountry": null,
+            "salesforceId": "001ak00001hb2SzAAI",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.339283-04:00"
+        },
+        {
+            "externalId": "001ak00001hb2T0AAI",
+            "customerName": "Burlington Textiles Corp of America",
+            "billingCity": "Burlington",
+            "billingCountry": "USA",
+            "salesforceId": "001ak00001hb2T0AAI",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.342624-04:00"
+        },
+        {
+            "externalId": "001ak00001hb2T1AAI",
+            "customerName": "Pyramid Construction Inc.",
+            "billingCity": "Paris",
+            "billingCountry": "France",
+            "salesforceId": "001ak00001hb2T1AAI",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.34528-04:00"
+        },
+        {
+            "externalId": "001ak00001hb2T2AAI",
+            "customerName": "Dickenson plc",
+            "billingCity": "Lawrence",
+            "billingCountry": "USA",
+            "salesforceId": "001ak00001hb2T2AAI",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.347547-04:00"
+        },
+        {
+            "externalId": "001ak00001hb2T3AAI",
+            "customerName": "Grand Hotels & Resorts Ltd",
+            "billingCity": "Chicago",
+            "billingCountry": null,
+            "salesforceId": "001ak00001hb2T3AAI",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.350002-04:00"
+        },
+        {
+            "externalId": "001ak00001hb2T4AAI",
+            "customerName": "United Oil & Gas Corp.",
+            "billingCity": "New York",
+            "billingCountry": null,
+            "salesforceId": "001ak00001hb2T4AAI",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.352483-04:00"
+        },
+        {
+            "externalId": "001ak00001hb2T5AAI",
+            "customerName": "Express Logistics and Transport",
+            "billingCity": "Portland",
+            "billingCountry": null,
+            "salesforceId": "001ak00001hb2T5AAI",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.354173-04:00"
+        },
+        {
+            "externalId": "001ak00001hb2T6AAI",
+            "customerName": "United Oil & Gas, Singapore",
+            "billingCity": "Singapore",
+            "billingCountry": null,
+            "salesforceId": "001ak00001hb2T6AAI",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.355756-04:00"
+        },
+        {
+            "externalId": "001ak00001hb2T7AAI",
+            "customerName": "University of Arizona",
+            "billingCity": "Tucson",
+            "billingCountry": null,
+            "salesforceId": "001ak00001hb2T7AAI",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.357407-04:00"
+        },
+        {
+            "externalId": "001ak00001hb2T8AAI",
+            "customerName": "United Oil & Gas, UK",
+            "billingCity": null,
+            "billingCountry": null,
+            "salesforceId": "001ak00001hb2T8AAI",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.358727-04:00"
+        },
+        {
+            "externalId": "001ak00001hb2T9AAI",
+            "customerName": "GenePoint",
+            "billingCity": "Mountain View",
+            "billingCountry": null,
+            "salesforceId": "001ak00001hb2T9AAI",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.360329-04:00"
+        },
+        {
+            "externalId": "001ak00001hb2TAAAY",
+            "customerName": "sForce",
+            "billingCity": "San Francisco",
+            "billingCountry": "US",
+            "salesforceId": "001ak00001hb2TAAAY",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.361793-04:00"
+        },
+        {
+            "externalId": "001ak00001hb2TBAAY",
+            "customerName": "Sample Account for Entitlements",
+            "billingCity": null,
+            "billingCountry": null,
+            "salesforceId": "001ak00001hb2TBAAY",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.363251-04:00"
+        },
+        {
+            "externalId": "001ak00001vllLdAAI",
+            "customerName": "Test Account 1",
+            "billingCity": null,
+            "billingCountry": null,
+            "salesforceId": "001ak00001vllLdAAI",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.364657-04:00"
+        },
+        {
+            "externalId": "001ak00001vmEk5AAE",
+            "customerName": "Test Account 1",
+            "billingCity": null,
+            "billingCountry": null,
+            "salesforceId": "001ak00001vmEk5AAE",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.366057-04:00"
+        },
+        {
+            "externalId": "001ak00001vmIEDAA2",
+            "customerName": "Test Account 1",
+            "billingCity": null,
+            "billingCountry": null,
+            "salesforceId": "001ak00001vmIEDAA2",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.367698-04:00"
+        },
+        {
+            "externalId": "001ak000021z0X5AAI",
+            "customerName": "Acme Corp 2",
+            "billingCity": "Orlando",
+            "billingCountry": "USA",
+            "salesforceId": "001ak000021z0X5AAI",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.369049-04:00"
+        },
+        {
+            "externalId": "001ak00002205gfAAA",
+            "customerName": "Acme Corp Updated",
+            "billingCity": "Orlando",
+            "billingCountry": "USA",
+            "salesforceId": "001ak00002205gfAAA",
+            "status": "ACTIVE",
+            "lastUpdated": "2026-04-03T14:07:08.370597-04:00"
+        }
+    ]
+}

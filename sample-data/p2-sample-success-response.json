@@ -1,0 +1,11 @@
+[
+    {
+        "externalId": "001xx000003DHP0AAO",
+        "customerName": "Acme Corp",
+        "billingCity": "Orlando",
+        "billingCountry": "USA",
+        "salesforceId": "001xx000003DHP0AAO",
+        "status": "ACTIVE",
+        "lastUpdated": "2026-04-03T14:06:59.180006-04:00"
+    }
+]

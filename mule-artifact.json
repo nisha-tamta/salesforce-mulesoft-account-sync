@@ -1,5 +1,6 @@
 {
-  "minMuleVersion": "4.8.0",
-  "secureProperties": [],
-  "name": "sf-mule-erp-sync-props"
+    "name": "sf-mule-erp-sync-props",
+    "minMuleVersion": "4.8.0",
+    "javaSpecificationVersions": ["17"],
+    "secureProperties": []
 }
