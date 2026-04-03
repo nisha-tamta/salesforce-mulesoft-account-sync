@@ -1,0 +1,5 @@
+{
+  "minMuleVersion": "4.8.0",
+  "secureProperties": [],
+  "name": "sf-mule-erp-sync-props"
+}

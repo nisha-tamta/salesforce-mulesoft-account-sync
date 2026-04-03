@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<configuration-properties
+		file="application.properties" doc:name="Properties" />
+
+	<http:listener-config name="listenerConfig"
+		doc:name="HTTP Listener Config">
+		<http:listener-connection host="0.0.0.0"
+			port="8081" />
+	</http:listener-config>
+
+	<http:request-config name="salesforceRequestConfig"
+		doc:name="Salesforce Request Config">
+		<http:request-connection protocol="HTTPS"
+			host="login.salesforce.com" port="443" />
+	</http:request-config>
+
+	<http:request-config name="erpRequestConfig"
+		doc:name="ERP Request Config">
+		<http:request-connection protocol="HTTP"
+			host="${erp.host}" port="${erp.port}" />
+	</http:request-config>
+
+	<sub-flow name="salesforceLoginSubflow">
+		<logger level="INFO"
+			message='Starting Salesforce SOAP login. correlationId=#[correlationId]'
+			doc:name="Log login start" />
+
+		<ee:transform doc:name="Build SOAP login request">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/xml
+ns env http://schemas.xmlsoap.org/soap/envelope/
+ns sf urn:partner.soap.sforce.com
+---
+env#Envelope: {
+  env#Header: {},
+  env#Body: {
+    sf#login: {
+      sf#username: p('sf.username'),
+      sf#password: p('sf.password') ++ p('sf.token')
+    }
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<logger level="INFO"
+			message='#["SOAP request payload = " ++ write(payload, "application/xml")]'
+			doc:name="Log SOAP request payload" />
+
+		<http:request method="POST"
+			config-ref="salesforceRequestConfig" path="/services/Soap/u/60.0"
+			sendBodyMode="ALWAYS" doc:name="SOAP login request">
+			<http:headers><![CDATA[#[{
+                "Content-Type": "text/xml",
+                "SOAPAction": "login"
+            }]]]></http:headers>
+		</http:request>
+
+		<logger level="INFO"
+			message='Salesforce login raw response received. correlationId=#[correlationId]'
+			doc:name="Log login response" />
+
+		<ee:transform doc:name="Extract session data">
+			<ee:variables>
+				<ee:set-variable variableName="sfSessionId"><![CDATA[%dw 2.0
+output application/java
+ns soapenv http://schemas.xmlsoap.org/soap/envelope/
+ns sf urn:partner.soap.sforce.com
+---
+payload.soapenv#Envelope.soapenv#Body.sf#loginResponse.sf#result.sf#sessionId as String
+]]></ee:set-variable>
+
+				<ee:set-variable variableName="sfServerUrl"><![CDATA[%dw 2.0
+output application/java
+ns soapenv http://schemas.xmlsoap.org/soap/envelope/
+ns sf urn:partner.soap.sforce.com
+---
+payload.soapenv#Envelope.soapenv#Body.sf#loginResponse.sf#result.sf#serverUrl as String
+]]></ee:set-variable>
+
+				<ee:set-variable variableName="sfHost"><![CDATA[%dw 2.0
+output application/java
+ns soapenv http://schemas.xmlsoap.org/soap/envelope/
+ns sf urn:partner.soap.sforce.com
+var serverUrl = payload.soapenv#Envelope.soapenv#Body.sf#loginResponse.sf#result.sf#serverUrl as String
+---
+(serverUrl replace "https://" with "" splitBy "/")[0]
+]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<logger level="INFO"
+			message='Salesforce login successful. host=#[vars.sfHost] correlationId=#[correlationId]'
+			doc:name="Log login success" />
+
+	</sub-flow>
+
+	<sub-flow name="queryAccountsSubflow">
+		<set-variable variableName="soql"
+			value="SELECT Id, Name, Phone, Website, BillingCity, BillingCountry FROM Account LIMIT 20"
+			doc:name="Set SOQL" />
+
+		<http:request method="GET"
+			config-ref="salesforceRequestConfig"
+			url="#['https://' ++ vars.sfHost ++ '/services/data/v60.0/query']"
+			doc:name="Query Salesforce Accounts">
+			<http:headers><![CDATA[#[{
+            "Authorization": "Bearer " ++ vars.sfSessionId,
+            "Accept": "application/json"
+        }]]]></http:headers>
+			<http:query-params><![CDATA[#[{
+            q: vars.soql
+        }]]]></http:query-params>
+		</http:request>
+
+		<set-variable variableName="sfRecords"
+			value="#[payload.records default []]"
+			doc:name="Store Salesforce records" />
+	</sub-flow>
+
+	<sub-flow name="buildErpPayloadSubflow">
+		<ee:transform doc:name="Build ERP payload">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var sourceRecords = vars.sfRecords default []
+---
+{
+  correlationId: correlationId,
+  source: "salesforce",
+  syncedAt: now() as String,
+  totalRecords: sizeOf(sourceRecords),
+  customers: sourceRecords map (item) -> {
+    salesforceId: item.Id,
+    externalId: item.Id,
+    name: item.Name,
+    phone: item.Phone default null,
+    website: item.Website default null,
+    billingCity: item.BillingCity default null,
+    billingCountry: item.BillingCountry default null,
+    active: true
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+
+	<sub-flow name="sendToErpSubflow">
+		<logger level="INFO"
+			message='Sending #[payload.totalRecords default 0] customer records to ERP. correlationId=#[correlationId]'
+			doc:name="Log ERP send" />
+
+		<http:request method="POST" config-ref="erpRequestConfig"
+			path="${erp.basePath}/customers/sync" doc:name="Send to ERP">
+			<http:headers><![CDATA[#[{
+                "Content-Type": "application/json",
+                "X-Correlation-Id": correlationId
+            }]]]></http:headers>
+		</http:request>
+	</sub-flow>
+
+	<flow name="healthFlow">
+		<http:listener config-ref="listenerConfig"
+			path="/api/health" allowedMethods="GET" doc:name="GET health" />
+
+		<ee:transform doc:name="Health response">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  status: "UP",
+  app: "sf-mule-erp-sync-props",
+  timestamp: now() as String
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+
+	<flow name="manualSyncFlow">
+		<http:listener config-ref="listenerConfig"
+			path="/api/sync/accounts" allowedMethods="POST"
+			doc:name="POST sync accounts" />
+
+		<logger level="INFO"
+			message='Manual sync started. correlationId=#[correlationId]'
+			doc:name="Log start" />
+
+		<flow-ref name="salesforceLoginSubflow"
+			doc:name="Salesforce login" />
+		<flow-ref name="queryAccountsSubflow"
+			doc:name="Query accounts" />
+		<flow-ref name="buildErpPayloadSubflow"
+			doc:name="Build ERP payload" />
+		<flow-ref name="sendToErpSubflow" doc:name="Send to ERP" />
+
+		<ee:transform doc:name="Success response">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  success: true,
+  message: "Salesforce accounts synced to ERP",
+  correlationId: correlationId,
+  erpResponse: payload
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<error-handler>
+			<on-error-propagate logException="true"
+				doc:name="On error propagate">
+				<logger level="ERROR"
+					message='#["Salesforce SOAP/login sync failed. Description = " ++ (error.description default "no description")]'
+					doc:name="Log error description" />
+				<logger level="ERROR"
+					message='#["Salesforce SOAP/login sync failed. Full error = " ++ write(error, "application/json")]'
+					doc:name="Log full error" />
+
+				<ee:transform doc:name="Error response">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  success: false,
+  correlationId: correlationId,
+  errorType: error.errorType.identifier,
+  message: error.description default "Unexpected error during Salesforce to ERP sync"
+}]]></ee:set-payload>
+						<ee:set-attributes><![CDATA[%dw 2.0
+output application/java
+---
+{
+  statusCode: 500,
+  headers: {
+    "Content-Type": "application/json"
+  }
+}]]></ee:set-attributes>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+
+</mule>

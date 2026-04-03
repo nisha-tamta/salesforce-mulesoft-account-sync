@@ -1,0 +1,25 @@
+{
+  "configs": [
+    "sf-mule-erp-sync-props.xml"
+  ],
+  "secureProperties": [],
+  "supportedJavaVersions": [],
+  "redeploymentEnabled": true,
+  "name": "sf-mule-erp-sync-props",
+  "minMuleVersion": "4.8.0",
+  "requiredProduct": "MULE_EE",
+  "classLoaderModelLoaderDescriptor": {
+    "id": "mule",
+    "attributes": {
+      "exportedPackages": [],
+      "exportedResources": [
+        "sf-mule-erp-sync-props.xml",
+        "application.properties"
+      ]
+    }
+  },
+  "bundleDescriptorLoader": {
+    "id": "mule",
+    "attributes": {}
+  }
+}
