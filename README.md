@@ -1,7 +1,9 @@
-# Salesforce to ERPNext Customer Sync — MuleSoft
+# Salesforce Account Sync to ERPNext — MuleSoft
 
 ## Overview
-A MuleSoft integration that syncs customer (Account) data from Salesforce to ERPNext. When triggered via HTTP, MuleSoft retrieves the full Account record from Salesforce, upserts the customer in ERPNext, and writes the sync status back to the Salesforce Account.
+Designed and implemented a Salesforce-to-ERP sync pipeline using MuleSoft, orchestrating Salesforce data retrieval, DataWeave transformation, and ERPNext delivery with structured error handling and end-to-end traceability. Demonstrates API-led connectivity patterns, CRM-to-ERP payload mapping, and integration reliability practices using Anypoint Studio and Postman.
+
+When triggered via HTTP, MuleSoft retrieves the full Account record from Salesforce via SOQL, upserts the customer in ERPNext using `custom_salesforce_id` as the match key, and writes the sync status back to the Salesforce Account.
 
 ## Architecture
 
