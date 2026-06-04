@@ -1,0 +1,473 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+      http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+      http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+
+	<configuration-properties
+		file="config.properties" />
+
+	<!-- HTTP listener for incoming sync requests -->
+	<http:listener-config name="HTTP_Listener_config"
+		doc:name="HTTP Listener config">
+		<http:listener-connection host="${http.host}"
+			port="${http.port}" />
+	</http:listener-config>
+
+	<!-- ERPNext HTTP Request Config. basePath hardcoded to /api/resource — 
+		Frappe's fixed REST path for all DocTypes. host and port externalized to 
+		config.properties (erp.host, erp.port). -->
+	<http:request-config name="ERP_Request_Config"
+		doc:name="ERP Request config" basePath="/api/resource">
+		<http:request-connection host="${erp.host}"
+			port="${erp.port}" />
+	</http:request-config>
+
+	<!-- Salesforce Connector Config. Used for: Account query, Account upsert, 
+		Account status update. -->
+	<salesforce:sfdc-config name="Salesforce_Config"
+		doc:name="Salesforce Config">
+		<salesforce:basic-connection
+			username="${sf.username}" password="${sf.password}"
+			token="${sf.token}" url="${sf.loginUrl}" />
+	</salesforce:sfdc-config>
+
+	<!-- ═══════════════════════════════════════════════════ EXPERIENCE LAYER 
+		Receives the HTTP request. Validates that salesforceId is present. Delegates 
+		to proc layer. Returns structured success or error response. ═══════════════════════════════════════════════════ -->
+	<flow name="exp-customer-sync-api" doc:id="exp-customer-sync-api">
+		<http:listener doc:name="POST /customers/sync"
+			config-ref="HTTP_Listener_config"
+			path="${api.basePath}/customers/sync" allowedMethods="POST">
+			<http:response
+				statusCode="#[(vars.httpStatus default 200) as Number]" />
+			<http:error-response
+				statusCode="#[(vars.httpStatus default 500) as Number]" />
+		</http:listener>
+
+		<!-- Use X-Correlation-Id header if provided, otherwise generate one -->
+		<set-variable variableName="correlationId"
+			value="#[(attributes.headers.'x-correlation-id' default uuid()) as String]" />
+
+		<!-- Canonical request. Caller sends only salesforceId. MuleSoft retrieves
+			all other Account fields from Salesforce directly.
+			try() safely handles empty or non-JSON bodies before validation fires. -->
+		<ee:transform doc:name="Canonical request">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+import try from dw::Runtime
+output application/json
+var body = try(() -> payload as Object).result default {}
+---
+{
+  salesforceId: (body.salesforceId default "") as String
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<logger level="INFO" doc:name="Incoming request"
+			message='#["Incoming customer sync request payload=" ++ write(payload, "application/json")]' />
+
+		<set-variable variableName="customer" value="#[payload]" />
+
+		<!-- Validate salesforceId is present -->
+		<choice doc:name="Validate request">
+			<when expression="#[isEmpty(vars.customer.salesforceId)]">
+				<raise-error type="APP:VALIDATION"
+					description="salesforceId is required" />
+			</when>
+		</choice>
+
+		<flow-ref name="proc-customer-sync" />
+
+		<error-handler>
+			<on-error-continue type="APP:VALIDATION"
+				logException="true" doc:name="Validation error">
+				<set-variable variableName="httpStatus" value="400" />
+				<ee:transform doc:name="Validation response">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  correlationId: vars.correlationId,
+  status:        "FAILED",
+  errorType:     "VALIDATION",
+  message:       error.description
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+
+			<on-error-continue type="APP:NOT_FOUND"
+				logException="true" doc:name="Not found error">
+				<set-variable variableName="httpStatus" value="404" />
+				<ee:transform doc:name="Not found response">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  correlationId: vars.correlationId,
+  status:        "FAILED",
+  errorType:     "NOT_FOUND",
+  message:       error.description
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+
+			<on-error-continue type="ANY" logException="true"
+				doc:name="Generic error">
+				<set-variable variableName="httpStatus"
+					value="#[(vars.httpStatus default 500)]" />
+				<ee:transform doc:name="Generic error response">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  correlationId: vars.correlationId default null,
+  status:        "FAILED",
+  errorType:     "SYSTEM",
+  message:       error.description default "Unexpected integration error"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+
+	<!-- ═══════════════════════════════════════════════════ PROCESS LAYER Salesforce 
+		is the source of truth. Flow: 1. Retrieve Account from Salesforce by Id 2. 
+		Upsert Customer in ERPNext from retrieved data 3. Write sync status back 
+		to Salesforce Account ═══════════════════════════════════════════════════ -->
+	<flow name="proc-customer-sync" doc:id="proc-customer-sync">
+		<logger level="INFO" doc:name="Process start"
+			message='#[output text/plain ---
+            "correlationId=" ++ ((vars.correlationId default "") as String) ++
+            " salesforceId=" ++ ((vars.customer.salesforceId default "") as String)]' />
+
+		<!-- Step 1: Retrieve full Account data from Salesforce -->
+		<flow-ref name="sys-salesforce-retrieve-account"
+			doc:name="Retrieve Account from Salesforce" />
+		<set-variable variableName="salesforceRecordId"
+			value="#[vars.customer.salesforceId]"
+			doc:name="Set Salesforce record ID from retrieved Account" />
+
+		<!-- Step 2: Upsert Customer in ERPNext using custom_salesforce_id -->
+		<flow-ref name="sys-erp-upsert-customer"
+			doc:name="Upsert Customer in ERPNext" />
+
+		<!-- Step 3: Write Synced status back to Salesforce Account -->
+		<set-variable variableName="syncStatus" value="Synced" />
+		<set-variable variableName="integrationMessage"
+			value='#[output text/plain ---
+            "ERPNext sync completed for salesforceId=" ++
+            ((vars.customer.salesforceId default "") as String)]' />
+		<flow-ref name="sys-salesforce-update-status"
+			doc:name="Update Salesforce status" />
+
+		<ee:transform doc:name="Success response">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+var erp = vars.erpResponse default {}
+---
+{
+  correlationId: vars.correlationId,
+  status: "SUCCESS",
+  salesforce: {
+    id:   vars.salesforceRecordId,
+    name: vars.customer.name
+  },
+  erp: {
+    erpId:         erp.name                 default null,
+    customerName:  erp.customer_name        default null,
+    customerGroup: erp.customer_group       default null,
+    territory:     erp.territory            default null,
+    salesforceId:  erp.custom_salesforce_id default vars.customer.salesforceId,
+    modified:      erp.modified             default null
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<error-handler>
+			<on-error-continue type="HTTP:*"
+				logException="true" doc:name="ERP error handler">
+				<set-variable variableName="httpStatus" value="502" />
+				<set-variable variableName="syncStatus" value="Failed" />
+				<set-variable variableName="integrationMessage"
+					value="#[error.description default 'ERPNext request failed']" />
+				<flow-ref name="sys-salesforce-update-status" />
+				<ee:transform doc:name="ERP failure response">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  correlationId: vars.correlationId,
+  status:        "FAILED",
+  errorType:     "ERP_CALL_FAILED",
+  salesforceId:  vars.salesforceRecordId,
+  message:       vars.integrationMessage
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+
+	<!-- ═══════════════════════════════════════════════════ SYSTEM LAYER — 
+		SALESFORCE RETRIEVE Queries Salesforce for the full Account record by Salesforce 
+		ID using SOQL. Populates vars.customer for all downstream subflows. This 
+		is the Salesforce data retrieval step — MuleSoft reads from Salesforce, not 
+		the caller. ═══════════════════════════════════════════════════ -->
+	<sub-flow name="sys-salesforce-retrieve-account"
+		doc:id="sys-salesforce-retrieve-account">
+
+		<logger level="INFO" doc:name="Log retrieval start"
+			message='#[output text/plain --- "Retrieving Salesforce Account. salesforceId=" ++
+				(vars.customer.salesforceId default "") ++
+				" correlationId=" ++ (vars.correlationId default "")]' />
+
+		<!-- Build SOQL query string -->
+		<ee:transform doc:name="Build SOQL query">
+			<ee:variables>
+				<ee:set-variable variableName="soql"><![CDATA[%dw 2.0
+output application/java
+---
+"SELECT Id, Name, Phone, Website, BillingCity, BillingCountry FROM Account WHERE Id = '"
+++ vars.customer.salesforceId
+++ "'"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<!-- Execute SOQL query via Salesforce Connector -->
+		<salesforce:query doc:name="Query Account by Id"
+			config-ref="Salesforce_Config">
+			<salesforce:salesforce-query>#[vars.soql]</salesforce:salesforce-query>
+		</salesforce:query>
+
+		<!-- Store raw query results -->
+		<set-variable variableName="sfAccountRecords"
+			value="#[payload]" doc:name="Store query results" />
+
+		<!-- Fail fast if Account not found -->
+		<choice doc:name="Check account exists">
+			<when expression="#[isEmpty(vars.sfAccountRecords)]">
+				<raise-error type="APP:NOT_FOUND"
+					description="#['Salesforce Account not found for Id: ' ++ vars.customer.salesforceId]" />
+			</when>
+		</choice>
+
+		<!-- Map retrieved Salesforce Account fields into vars.customer. This is 
+			the single canonical customer object used by all downstream subflows — Salesforce 
+			upsert and ERPNext upsert. Naming convention: salesforceId = Salesforce Account.Id 
+			(used for status writeback) externalId = same value, used as External_Id__c 
+			in Salesforce upsert and as custom_salesforce_id in ERPNext upsert -->
+		<ee:transform doc:name="Map Account to customer var">
+			<ee:variables>
+				<ee:set-variable variableName="customer"><![CDATA[%dw 2.0
+output application/json
+var account = vars.sfAccountRecords[0]
+---
+{
+  salesforceId:   account.Id,
+  externalId:     account.Id,
+  name:           account.Name,
+  phone:          account.Phone          default "",
+  website:        account.Website        default "",
+  billingCity:    account.BillingCity    default "",
+  billingCountry: account.BillingCountry default ""
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<logger level="INFO" doc:name="Log retrieval complete"
+			message='#[output text/plain --- "Salesforce Account retrieved. name=" ++
+				(vars.customer.name default "") ++
+				" correlationId=" ++ (vars.correlationId default "")]' />
+
+	</sub-flow>
+
+	<!-- ═══════════════════════════════════════════════════ SYSTEM LAYER — 
+		ERPNEXT UPSERT Upserts Customer using custom_salesforce_id as match key. 
+		Naming convention: MuleSoft field : externalId (source-agnostic) ERPNext 
+		field : custom_salesforce_id (self-documenting) Mapping here : externalId 
+		→ custom_salesforce_id Upsert logic: GET /Customer?filters=custom_salesforce_id=externalId 
+		→ data array has items → PUT (record exists, update it) → data array empty 
+		→ POST (record missing, create it) ═══════════════════════════════════════════════════ -->
+	<sub-flow name="sys-erp-upsert-customer"
+		doc:id="sys-erp-upsert-customer">
+
+		<logger level="INFO" doc:name="Log upsert check"
+			message='#[output text/plain --- "ERPNext upsert check. externalId=" ++
+				(vars.customer.externalId default "") ++
+				" correlationId=" ++ (vars.correlationId default "")]' />
+
+		<!-- Step 1: Look up ERPNext Customer by custom_salesforce_id -->
+		<http:request method="GET"
+			doc:name="GET Customer by Salesforce ID"
+			config-ref="ERP_Request_Config" path="/Customer">
+			<http:headers><![CDATA[#[{
+				"Authorization": "token " ++
+					p('erp.apiKey') ++ ":" ++ p('erp.apiSecret')
+			}]]]></http:headers>
+			<http:query-params><![CDATA[#[{
+				"filters": "[[\"Customer\",\"custom_salesforce_id\",\"=\",\""
+					++ vars.customer.externalId ++ "\"]]",
+				"fields": "[\"name\",\"customer_name\",\"custom_salesforce_id\"]"
+			}]]]></http:query-params>
+		</http:request>
+
+		<!-- Step 2: Store lookup result -->
+		<set-variable variableName="erpLookupData"
+			value="#[payload.data default []]"
+			doc:name="Store ERPNext lookup result" />
+
+		<!-- Step 3: Route to PUT (update) or POST (create) -->
+		<choice doc:name="Upsert decision">
+
+			<when expression="#[sizeOf(vars.erpLookupData) > 0]">
+				<!-- Record EXISTS → UPDATE via PUT -->
+				<set-variable variableName="erpCustomerName"
+					value="#[vars.erpLookupData[0].name]"
+					doc:name="Store ERPNext customer name for PUT URL" />
+
+				<logger level="INFO" doc:name="Log update"
+					message='#[output text/plain --- "ERPNext customer exists. Updating erpName=" ++
+						(vars.erpCustomerName default "") ++
+						" correlationId=" ++ (vars.correlationId default "")]' />
+
+				<logger level="INFO" doc:name="Log PUT fields"
+					message='#[output text/plain --- "ERP PUT fields: name=" ++
+						(vars.customer.name default "NULL") ++
+						" phone=" ++ (vars.customer.phone default "NULL") ++
+						" website=" ++ (vars.customer.website default "NULL")]' />
+
+				<!-- PUT payload — only send fields being updated. ERPNext merges — all 
+					other fields left untouched. -->
+				<ee:transform doc:name="Build PUT payload">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  customer_name:        vars.customer.name,
+  mobile_no:            vars.customer.phone          default "",
+  website:              vars.customer.website        default "",
+  custom_salesforce_id: vars.customer.externalId
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+
+				<!-- PUT /Customer/{name} Spaces encoded as %20 using DataWeave string 
+					replace. -->
+				<http:request method="PUT" doc:name="PUT Customer"
+					config-ref="ERP_Request_Config"
+					path="#['/Customer/' ++ (vars.erpCustomerName replace ' ' with '%20')]">
+					<http:headers><![CDATA[#[{
+						"Authorization": "token " ++
+							p('erp.apiKey') ++ ":" ++ p('erp.apiSecret'),
+						"Content-Type": "application/json"
+					}]]]></http:headers>
+				</http:request>
+
+				<logger level="INFO" doc:name="Log PUT response"
+					message='#[output text/plain --- "ERP PUT response: " ++ write(payload, "application/json")]' />
+			</when>
+
+			<otherwise>
+				<!-- Record DOES NOT EXIST → CREATE via POST -->
+				<logger level="INFO" doc:name="Log create"
+					message='#[output text/plain --- "ERPNext customer not found. Creating. externalId=" ++
+						(vars.customer.externalId default "") ++
+						" correlationId=" ++ (vars.correlationId default "")]' />
+
+				<!-- POST payload — all mandatory ERPNext fields required. customer_name, 
+					customer_type, customer_group, territory are mandatory. custom_salesforce_id 
+					stored for future upsert lookups. phone and website mapped from retrieved 
+					Salesforce Account data. -->
+				<ee:transform doc:name="Build POST payload">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  customer_name:        vars.customer.name,
+  customer_type:        "Company",
+  customer_group:       "Commercial",
+  territory:            "United States",
+  mobile_no:            vars.customer.phone   default "",
+  website:              vars.customer.website default "",
+  custom_salesforce_id: vars.customer.externalId
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+
+				<http:request method="POST" doc:name="POST Customer"
+					config-ref="ERP_Request_Config" path="/Customer">
+					<http:headers><![CDATA[#[{
+						"Authorization": "token " ++
+							p('erp.apiKey') ++ ":" ++ p('erp.apiSecret'),
+						"Content-Type": "application/json"
+					}]]]></http:headers>
+				</http:request>
+			</otherwise>
+
+		</choice>
+
+		<!-- Step 4: Unwrap and store ERPNext response. ERPNext wraps all responses 
+			in { "data": { ... } }. vars.erpResponse holds the unwrapped Customer object 
+			for use in the proc layer success response. -->
+		<set-variable variableName="erpResponse"
+			value="#[payload.data default payload]"
+			doc:name="Store ERPNext response" />
+
+		<logger level="INFO" doc:name="Log ERP upsert complete"
+			message='#[output text/plain --- "ERPNext upsert complete. erpName=" ++
+				((payload.data.name default "") as String) ++
+				" correlationId=" ++ (vars.correlationId default "")]' />
+
+	</sub-flow>
+
+	<!-- ═══════════════════════════════════════════════════ SYSTEM LAYER — 
+		SALESFORCE STATUS UPDATE Writes ERP_Status__c, Last_ERP_Sync__c, and Integration_Message__c 
+		back to the Salesforce Account. Skipped if Salesforce Record ID is not available. 
+		═══════════════════════════════════════════════════ -->
+	<sub-flow name="sys-salesforce-update-status"
+		doc:id="sys-salesforce-update-status">
+		<choice doc:name="Update status only if Salesforce ID exists">
+			<when
+				expression="#[!isEmpty((vars.salesforceRecordId default '') as String)]">
+				<ee:transform doc:name="Build status update payload">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+[
+  {
+    Id:                     vars.salesforceRecordId,
+    External_Id__c:         vars.erpResponse.name default null,
+    ERP_Status__c:          vars.syncStatus,
+    Last_ERP_Sync__c:       now(),
+    Integration_Message__c: vars.integrationMessage
+  }
+]]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<salesforce:update type="Account"
+					config-ref="Salesforce_Config" doc:name="Update Account status" />
+			</when>
+		</choice>
+	</sub-flow>
+
+</mule>

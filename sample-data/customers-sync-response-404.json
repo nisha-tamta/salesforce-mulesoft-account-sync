@@ -1,0 +1,6 @@
+{
+  "correlationId": "test-001",
+  "status": "FAILED",
+  "errorType": "NOT_FOUND",
+  "message": "Salesforce Account not found for Id: 000DOESNOTEXIST"
+}

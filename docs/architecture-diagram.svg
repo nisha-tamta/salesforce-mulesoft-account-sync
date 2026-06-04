@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="940" height="450" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI', Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrBlue" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#0176d3"/>
+    </marker>
+    <marker id="arrGreen" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#16a34a"/>
+    </marker>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000014"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="940" height="450" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="470" y="30" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a" letter-spacing="0.3">Salesforce &#8594; ERPNext Customer Sync</text>
+  <text x="470" y="48" text-anchor="middle" font-size="10.5" fill="#64748b">MuleSoft 4.10.0 &#160;&#183;&#160; Salesforce Connector 11.3.0 &#160;&#183;&#160; DataWeave 2.0</text>
+
+  <!-- ══ MuleSoft container ══ -->
+  <rect x="140" y="62" width="602" height="310" rx="16" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+  <text x="470" y="76" text-anchor="middle" font-size="10" font-weight="600" fill="#3b82f6" letter-spacing="1.2">MULESOFT APPLICATION</text>
+
+  <!-- ══ HTTP Client ══ -->
+  <rect x="16" y="156" width="112" height="118" rx="12" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="72" y="204" text-anchor="middle" font-size="10.5" font-weight="600" fill="#334155">HTTP Client</text>
+  <text x="72" y="221" text-anchor="middle" font-size="9" fill="#64748b">POST</text>
+  <text x="72" y="236" text-anchor="middle" font-size="8.5" fill="#94a3b8">/api/customers/sync</text>
+  <text x="72" y="251" text-anchor="middle" font-size="8" fill="#cbd5e1">{ salesforceId }</text>
+
+  <!-- Arrow: Client → Experience -->
+  <line x1="128" y1="215" x2="156" y2="215" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ══ Experience Layer ══ -->
+  <rect x="158" y="84" width="150" height="268" rx="12" fill="#ffffff" stroke="#bfdbfe" stroke-width="2" filter="url(#shadow)"/>
+  <!-- Header -->
+  <rect x="158" y="84" width="150" height="34" rx="12" fill="#3b82f6"/>
+  <rect x="158" y="106" width="150" height="12" fill="#3b82f6"/>
+  <text x="233" y="106" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff" letter-spacing="0.8">EXPERIENCE</text>
+  <!-- Flow name -->
+  <text x="233" y="136" text-anchor="middle" font-size="9" font-weight="600" fill="#1e40af">exp-customer-sync-api</text>
+  <line x1="170" y1="148" x2="296" y2="148" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Actions — vertically centered in remaining space -->
+  <text x="233" y="167" text-anchor="middle" font-size="8.5" fill="#475569">Validate salesforceId</text>
+  <text x="233" y="183" text-anchor="middle" font-size="8.5" fill="#475569">Set correlationId</text>
+  <text x="233" y="199" text-anchor="middle" font-size="8.5" fill="#475569">Route to process layer</text>
+  <line x1="170" y1="211" x2="296" y2="211" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="233" y="228" text-anchor="middle" font-size="8" font-weight="600" fill="#ef4444">Error Handling</text>
+  <text x="233" y="243" text-anchor="middle" font-size="8" fill="#94a3b8">400 &#183; 404 &#183; 502 &#183; 500</text>
+  <line x1="170" y1="255" x2="296" y2="255" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="233" y="273" text-anchor="middle" font-size="8" fill="#475569">correlationId in every</text>
+  <text x="233" y="287" text-anchor="middle" font-size="8" fill="#475569">response</text>
+  <text x="233" y="340" text-anchor="middle" font-size="7.5" fill="#cbd5e1">DataWeave 2.0</text>
+
+  <!-- Arrow: Experience → Process -->
+  <line x1="308" y1="215" x2="324" y2="215" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ══ Process Layer ══ -->
+  <rect x="326" y="84" width="150" height="268" rx="12" fill="#ffffff" stroke="#bfdbfe" stroke-width="2" filter="url(#shadow)"/>
+  <!-- Header -->
+  <rect x="326" y="84" width="150" height="34" rx="12" fill="#3b82f6"/>
+  <rect x="326" y="106" width="150" height="12" fill="#3b82f6"/>
+  <text x="401" y="106" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff" letter-spacing="0.8">PROCESS</text>
+  <!-- Flow name -->
+  <text x="401" y="136" text-anchor="middle" font-size="9" font-weight="600" fill="#1e40af">proc-customer-sync</text>
+  <line x1="338" y1="148" x2="464" y2="148" stroke="#e2e8f0" stroke-width="1"/>
+  <!-- Step pills -->
+  <rect x="340" y="158" width="122" height="30" rx="7" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="401" y="177" text-anchor="middle" font-size="8.5" fill="#1d4ed8">1 &#160; Retrieve from Salesforce</text>
+  <rect x="340" y="198" width="122" height="30" rx="7" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+  <text x="401" y="217" text-anchor="middle" font-size="8.5" fill="#15803d">2 &#160; Upsert in ERPNext</text>
+  <rect x="340" y="238" width="122" height="30" rx="7" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="401" y="257" text-anchor="middle" font-size="8.5" fill="#1d4ed8">3 &#160; Write status to SF</text>
+  <line x1="338" y1="280" x2="464" y2="280" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="401" y="299" text-anchor="middle" font-size="8" fill="#475569">Build success response</text>
+  <text x="401" y="313" text-anchor="middle" font-size="7.5" fill="#94a3b8">correlationId + sf{} + erp{}</text>
+  <text x="401" y="340" text-anchor="middle" font-size="7.5" fill="#cbd5e1">DataWeave 2.0</text>
+
+  <!-- Arrow: Process → System -->
+  <line x1="476" y1="215" x2="492" y2="215" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ══ System Layer ══ -->
+  <rect x="494" y="84" width="232" height="268" rx="12" fill="#ffffff" stroke="#bfdbfe" stroke-width="2" filter="url(#shadow)"/>
+  <!-- Header -->
+  <rect x="494" y="84" width="232" height="34" rx="12" fill="#3b82f6"/>
+  <rect x="494" y="106" width="232" height="12" fill="#3b82f6"/>
+  <text x="610" y="106" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff" letter-spacing="0.8">SYSTEM</text>
+
+  <!-- sys box 1 — salesforce retrieve -->
+  <rect x="506" y="126" width="208" height="64" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.2"/>
+  <text x="610" y="147" text-anchor="middle" font-size="8.5" font-weight="600" fill="#1d4ed8">sys-salesforce-retrieve-account</text>
+  <text x="610" y="162" text-anchor="middle" font-size="8" fill="#64748b">SOQL — Account by Id</text>
+  <text x="610" y="182" text-anchor="middle" font-size="7.5" fill="#94a3b8">SELECT Id, Name, Phone, Website ...</text>
+
+  <!-- sys box 2 — erp upsert -->
+  <rect x="506" y="200" width="208" height="64" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.2"/>
+  <text x="610" y="221" text-anchor="middle" font-size="8.5" font-weight="600" fill="#15803d">sys-erp-upsert-customer</text>
+  <text x="610" y="236" text-anchor="middle" font-size="8" fill="#64748b">GET &#8594; exists? PUT : POST</text>
+  <text x="610" y="256" text-anchor="middle" font-size="7.5" fill="#94a3b8">match key: custom_salesforce_id</text>
+
+  <!-- sys box 3 — salesforce update -->
+  <rect x="506" y="274" width="208" height="64" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.2"/>
+  <text x="610" y="295" text-anchor="middle" font-size="8.5" font-weight="600" fill="#1d4ed8">sys-salesforce-update-status</text>
+  <text x="610" y="310" text-anchor="middle" font-size="8" fill="#64748b">ERP_Status__c &#183; Last_ERP_Sync__c</text>
+  <text x="610" y="328" text-anchor="middle" font-size="7.5" fill="#94a3b8">External_Id__c &#183; Integration_Message__c</text>
+
+  <!-- ══ Salesforce ══ -->
+  <rect x="758" y="108" width="148" height="108" rx="12" fill="#ffffff" stroke="#93c5fd" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="758" y="108" width="148" height="8" rx="6" fill="#0176d3"/>
+  <rect x="758" y="114" width="148" height="6" fill="#0176d3"/>
+  <text x="832" y="148" text-anchor="middle" font-size="18" fill="#0176d3">&#9729;</text>
+  <text x="832" y="168" text-anchor="middle" font-size="12" font-weight="700" fill="#0176d3">Salesforce</text>
+  <text x="832" y="183" text-anchor="middle" font-size="8.5" fill="#64748b">Account Object</text>
+  <text x="832" y="198" text-anchor="middle" font-size="8" fill="#94a3b8">SOAP / SOQL &#183; v60.0</text>
+
+  <!-- ══ ERPNext ══ -->
+  <rect x="758" y="240" width="148" height="108" rx="12" fill="#ffffff" stroke="#86efac" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="758" y="240" width="148" height="8" rx="6" fill="#16a34a"/>
+  <rect x="758" y="246" width="148" height="6" fill="#16a34a"/>
+  <text x="832" y="280" text-anchor="middle" font-size="18" fill="#16a34a">&#9881;</text>
+  <text x="832" y="300" text-anchor="middle" font-size="12" font-weight="700" fill="#16a34a">ERPNext</text>
+  <text x="832" y="315" text-anchor="middle" font-size="8.5" fill="#64748b">Customer DocType</text>
+  <text x="832" y="330" text-anchor="middle" font-size="8" fill="#94a3b8">Frappe REST &#183; Token Auth</text>
+
+  <!-- Arrow: sys-retrieve → Salesforce -->
+  <line x1="714" y1="158" x2="756" y2="158" stroke="#0176d3" stroke-width="1.5" marker-end="url(#arrBlue)"/>
+
+  <!-- Arrow: sys-erp → ERPNext -->
+  <line x1="714" y1="232" x2="756" y2="284" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrGreen)"/>
+
+  <!-- Arrow: sys-update-status → Salesforce (dashed writeback) -->
+  <path d="M714,306 L742,306 L742,216 L756,216" stroke="#0176d3" stroke-width="1.5" stroke-dasharray="4,3" fill="none" marker-end="url(#arrBlue)"/>
+  <text x="732" y="264" text-anchor="middle" font-size="7.5" fill="#0176d3" transform="rotate(-90,732,264)">status writeback</text>
+
+  <!-- Footer -->
+  <text x="470" y="420" text-anchor="middle" font-size="8.5" fill="#94a3b8">config.properties (gitignored) &#160;&#183;&#160; sf.username &#183; sf.password &#183; sf.token &#183; sf.loginUrl &#160;&#183;&#160; erp.host &#183; erp.port &#183; erp.apiKey &#183; erp.apiSecret</text>
+
+</svg>

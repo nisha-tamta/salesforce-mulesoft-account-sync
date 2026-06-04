@@ -1,6 +1,3 @@
 {
-  "externalId": "CUST-1002",
-  "name": "Acme Corp 2",
-  "billingCity": "Orlando",
-  "billingCountry": "USA"
+  "salesforceId": "001ak00002j5UxDAAU"
 }

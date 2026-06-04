@@ -1,0 +1,16 @@
+{
+  "correlationId": "test-001",
+  "status": "SUCCESS",
+  "salesforce": {
+    "id": "001ak00002j5UxDAAU",
+    "name": "Acme Solutions Inc"
+  },
+  "erp": {
+    "erpId": "Acme Solutions Inc",
+    "customerName": "Acme Solutions Inc",
+    "customerGroup": "Commercial",
+    "territory": "United States",
+    "salesforceId": "001ak00002j5UxDAAU",
+    "modified": "2026-06-04 14:11:12.742035"
+  }
+}

@@ -1,8 +1,9 @@
 {
-  "externalId": "CUST-1001",
-  "customerName": "Acme Corp",
-  "billingCity": "Orlando",
-  "billingCountry": "USA",
-  "salesforceId": "001TEST123",
-  "status": "PENDING"
+  "customer_name": "Initech LLC",
+  "customer_type": "Company",
+  "customer_group": "Commercial",
+  "territory": "United States",
+  "mobile_no": "+1 (512) 555-0147",
+  "website": "https://initech.com",
+  "custom_salesforce_id": "001ak00002j9TZaAAM"
 }

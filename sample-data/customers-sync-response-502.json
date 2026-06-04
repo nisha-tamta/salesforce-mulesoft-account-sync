@@ -1,0 +1,7 @@
+{
+  "correlationId": "test-001",
+  "status": "FAILED",
+  "errorType": "ERP_CALL_FAILED",
+  "salesforceId": "001ak00002j5UxDAAU",
+  "message": "HTTP GET on resource 'http://localhost:8080/api/resource/Customer' failed: Connection refused: localhost/127.0.0.1:8080."
+}

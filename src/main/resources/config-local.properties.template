@@ -1,0 +1,15 @@
+http.host=0.0.0.0
+http.port=8081
+
+api.basePath=/api
+
+# ERPNext
+erp.host=localhost
+erp.port=8080
+erp.apiKey=YOUR_API_KEY
+erp.apiSecret=YOUR_API_SECRET
+
+sf.username=YOUR_USERNAME
+sf.password=YOUR_PASSWORD
+sf.token=YOUR_SECURITY_TOKEN
+sf.loginUrl=https://login.salesforce.com/services/Soap/u/60.0

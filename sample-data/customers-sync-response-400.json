@@ -1,0 +1,6 @@
+{
+  "correlationId": "test-001",
+  "status": "FAILED",
+  "errorType": "VALIDATION",
+  "message": "salesforceId is required"
+}
