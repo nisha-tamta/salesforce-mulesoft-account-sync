@@ -7,7 +7,7 @@ When triggered via HTTP, MuleSoft retrieves the full Account record from Salesfo
 
 ## Architecture
 
-![Architecture Diagram](docs/architecture-diagram.svg)
+![Architecture Diagram](docs/sync-architecture-diagram.png)
 
 ## Tech Stack
 - Mule Runtime 4.10.0
